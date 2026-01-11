@@ -19,5 +19,5 @@ jobs:
           cli-version: "3.11"
       - name: test connection
         env:
-          SNOWFLAKE_ACCOUNT: ${{ vars.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
         run: snow connection test -x
