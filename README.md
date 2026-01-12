@@ -143,6 +143,26 @@ The workflow will:
 
 ## How it works
 
+### OIDC Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant GH as GitHub Action
+    participant SF as Snowflake
+    participant DB as Warehouse
+
+    Note over GH, SF: No Secrets! (WIF)
+    GH->>GH: 1. Generate OIDC Token (Signed by GitHub)
+    GH->>SF: 2. Send Token to Snowflake
+    Note right of GH: repo:kameshsampath/warehouse-cost-cop-demo:ref:refs/heads/main
+    SF->>SF: 3. Validate Signature & Subject
+    SF->>GH: 4. Return Access Token (Scoped to Bot Role)
+    GH->>DB: 5. ALTER WAREHOUSE ...
+    DB-->>GH: Success
+```
+
+### Warehouse Discovery
+
 The bot uses Snowflake Scripting to discover and update warehouses dynamically:
 
 ```sql
