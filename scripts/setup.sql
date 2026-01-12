@@ -1,0 +1,64 @@
+-- Cost Cop demo objects: 3 demo warehouses + OIDC service user + role + grants.
+USE ROLE ACCOUNTADMIN;
+
+CREATE OR REPLACE WAREHOUSE COST_COP_DEMO_WH_A
+  WAREHOUSE_SIZE = 'LARGE'
+  AUTO_SUSPEND = 1800
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Cost Cop demo warehouse A (BEFORE policy)';
+
+CREATE OR REPLACE WAREHOUSE COST_COP_DEMO_WH_B
+  WAREHOUSE_SIZE = 'LARGE'
+  AUTO_SUSPEND = 1800
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Cost Cop demo warehouse B (BEFORE policy)';
+
+CREATE OR REPLACE WAREHOUSE COST_COP_DEMO_WH_C
+  WAREHOUSE_SIZE = 'LARGE'
+  AUTO_SUSPEND = 1800
+  INITIALLY_SUSPENDED = TRUE
+  COMMENT = 'Cost Cop demo warehouse C (BEFORE policy)';
+
+CREATE OR REPLACE ROLE COST_COP_BOT_ROLE
+  COMMENT = 'Least-privilege role used by the Cost Cop GitHub Action via OIDC';
+
+CREATE OR REPLACE USER COST_COP_BOT_SVC_USER
+  TYPE = SERVICE
+  WORKLOAD_IDENTITY = (
+    TYPE = OIDC
+    ISSUER = 'https://token.actions.githubusercontent.com'
+    -- pattern: repo:<owner>/<repo>:ref:refs/heads/main
+    -- https://docs.github.com/en/actions/reference/security/oidc#example-subject-claims`
+    SUBJECT = 'repo:kameshsampath/warehouse-cost-cop-demo:ref:refs/heads/main'
+  )
+  DEFAULT_ROLE = COST_COP_BOT_ROLE
+  DEFAULT_WAREHOUSE = COST_COP_DEMO_WH_A
+  COMMENT = 'The GH Action Service User used by Cost Cop (Snowflake CLI + GitHub OIDC)';
+
+GRANT ROLE COST_COP_BOT_ROLE TO USER COST_COP_BOT_SVC_USER;
+
+GRANT USAGE ON WAREHOUSE COST_COP_DEMO_WH_A TO ROLE COST_COP_BOT_ROLE;
+GRANT OPERATE, MODIFY ON WAREHOUSE COST_COP_DEMO_WH_A TO ROLE COST_COP_BOT_ROLE;
+
+GRANT USAGE ON WAREHOUSE COST_COP_DEMO_WH_B TO ROLE COST_COP_BOT_ROLE;
+GRANT OPERATE, MODIFY ON WAREHOUSE COST_COP_DEMO_WH_B TO ROLE COST_COP_BOT_ROLE;
+
+GRANT USAGE ON WAREHOUSE COST_COP_DEMO_WH_C TO ROLE COST_COP_BOT_ROLE;
+GRANT OPERATE, MODIFY ON WAREHOUSE COST_COP_DEMO_WH_C TO ROLE COST_COP_BOT_ROLE;
+
+
+SET current_user = (SELECT CURRENT_USER());
+GRANT ROLE COST_COP_BOT_ROLE TO USER IDENTIFIER($current_user);
+
+SET stmt =
+$$
+BEGIN
+  SHOW WAREHOUSES LIKE 'COST_COP_DEMO_WH_%';
+  LET res RESULTSET := (SELECT "name" name, "type" type, "auto_suspend" auto_suspend FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())));
+  
+  RETURN TABLE(res);
+END;
+$$
+;
+
+EXECUTE IMMEDIATE $stmt;

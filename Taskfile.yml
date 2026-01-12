@@ -1,0 +1,71 @@
+# https://taskfile.dev
+version: "3"
+
+dotenv: [".env"]
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
+
+  test-connection:
+    desc: Test Snowflake connection
+    cmds:
+      - snow connection test
+
+  setup:
+    desc: Run Snowflake setup script (creates demo objects + OIDC user)
+    cmds:
+      - snow sql -f scripts/setup.sql
+
+  cleanup:
+    desc: Trigger the Demo Cleanup workflow via GitHub Actions
+    preconditions:
+      - sh: command -v gh
+        msg: "gh (GitHub CLI) is not installed. Use 'task cleanup:local' to run locally."
+    cmds:
+      - gh workflow run cleanup.yml
+      - echo "Workflow triggered! Waiting for run to start..."
+      - sleep 2
+      - gh run watch --exit-status
+
+  cleanup:local:
+    desc: Remove all demo objects from Snowflake locally
+    cmds:
+      - snow sql -f scripts/cleanup.sql
+
+  enforce:
+    desc: Trigger the Warehouse Police workflow via GitHub Actions
+    preconditions:
+      - sh: command -v gh
+        msg: "gh (GitHub CLI) is not installed. Use 'task enforce:local' to run locally."
+    cmds:
+      - gh workflow run cost_cop.yml
+      - echo "Workflow triggered! Waiting for run to start..."
+      - sleep 2
+      - gh run watch --exit-status
+
+  enforce:local:
+    desc: Run the warehouse police script locally
+    cmds:
+      - snow sql -f governance/warehouse_police.sql
+
+  add-repo-secret:
+    desc: Set SNOWFLAKE_ACCOUNT as GitHub repository secret
+    preconditions:
+      - sh: command -v gh
+        msg: "gh (GitHub CLI) is not installed"
+      - sh: command -v jq
+        msg: "jq is not installed"
+    cmds:
+      - |
+        SNOWFLAKE_ACCOUNT=$(snow connection test --format json | jq -r '.Account')
+        echo "Setting SNOWFLAKE_ACCOUNT secret to: $SNOWFLAKE_ACCOUNT"
+        gh secret set SNOWFLAKE_ACCOUNT --body "$SNOWFLAKE_ACCOUNT"
+        echo "Done!"
+
+  show-account:
+    desc: Show Snowflake account identifier from connection
+    cmds:
+      - snow connection test --format json | jq -r '.Account'
