@@ -20,18 +20,7 @@ tasks:
       - snow sql -f scripts/setup.sql
 
   cleanup:
-    desc: Trigger the Demo Cleanup workflow via GitHub Actions
-    preconditions:
-      - sh: command -v gh
-        msg: "gh (GitHub CLI) is not installed. Use 'task cleanup:local' to run locally."
-    cmds:
-      - gh workflow run cleanup.yml
-      - echo "Workflow triggered! Waiting for run to start..."
-      - sleep 2
-      - gh run watch --exit-status
-
-  cleanup:local:
-    desc: Remove all demo objects from Snowflake locally
+    desc: Remove all demo objects from Snowflake (requires ACCOUNTADMIN)
     cmds:
       - snow sql -f scripts/cleanup.sql
 
