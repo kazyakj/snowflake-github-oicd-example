@@ -58,3 +58,22 @@ tasks:
     desc: Show Snowflake account identifier from connection
     cmds:
       - snow connection test --format json | jq -r '.Account'
+
+  show-warehouses:
+    desc: Show Snowflake warehouses
+    cmds:
+      - |
+        snow sql --stdin <<'EOF'
+        SET stmt =
+        $$
+        BEGIN
+          SHOW WAREHOUSES LIKE 'COST_COP_DEMO_WH_%';
+          LET res RESULTSET := (SELECT "name", "type", "auto_suspend" FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())));
+          
+          RETURN TABLE(res);
+        END;
+        $$
+        ;
+
+        EXECUTE IMMEDIATE $stmt;
+        EOF
