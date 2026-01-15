@@ -1,0 +1,36 @@
+name: OIDC Example
+
+on:
+  workflow_dispatch: {}
+  # Enable if you want to run the workflow on a schedule
+  # schedule:
+  #   - cron: "0/5 * * * *" # every minute for demo
+
+permissions:
+  id-token: write # Required for GitHub OIDC token generation
+  contents: read
+
+jobs:
+  cost-cop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Setup Snowflake CLI (OIDC)
+        uses: snowflakedb/snowflake-cli-action@v2.0
+        with:
+          use-oidc: true
+          cli-version: "3.11"
+
+      - name: Test connection (OIDC)
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+        run: |
+          snow connection test -x
+
+      - name: Run Sample Script
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+        run: |
+          snow sql -x -f cicd_scripts/example_script.sql
