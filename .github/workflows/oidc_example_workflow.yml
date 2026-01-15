@@ -11,7 +11,8 @@ permissions:
   contents: read
 
 jobs:
-  cost-cop:
+  sample-job:
+    environment: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
