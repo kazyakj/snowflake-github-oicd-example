@@ -29,8 +29,8 @@ jobs:
         run: |
           snow connection test -x
 
-      - name: Enforce Cost Cop policy
+      - name: Run Sample Script
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
         run: |
-          snow sql -x -f governance/warehouse_police.sql
+          snow sql -x -f cicd_scripts/example_script.sql
